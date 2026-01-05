@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { UserProfile, FoodItem, Order, ChatMessage, Review, Notification, OrderStatus } from './types';
 
 interface AppContextType {
@@ -10,7 +10,7 @@ interface AppContextType {
   chats: ChatMessage[];
   reviews: Review[];
   notifications: Notification[];
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   signup: (userData: Omit<UserProfile, 'id' | 'createdAt' | 'role' | 'following' | 'followers'>) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<UserProfile>) => void;
@@ -31,7 +31,8 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'sue_ah_hahn_db_v2';
+const STORAGE_KEY = 'sue_ah_hahn_db_v3';
+const SYNC_CHANNEL = 'sue_ah_hahn_sync';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [data, setData] = useState(() => {
@@ -48,39 +49,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
+  const bc = useMemo(() => new BroadcastChannel(SYNC_CHANNEL), []);
+
   const save = useCallback((newData: any) => {
     setData(newData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
-  }, []);
+    bc.postMessage(newData);
+  }, [bc]);
 
-  // Sync state between tabs to simulate real-time
   useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) {
-        setData(JSON.parse(e.newValue));
-      }
+    bc.onmessage = (event) => {
+      setData(event.data);
     };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+    return () => bc.close();
+  }, [bc]);
 
-  // Cleanup old notifications (> 5 days)
-  useEffect(() => {
-    const now = Date.now();
-    const fiveDaysMs = 5 * 24 * 60 * 60 * 1000;
-    const filteredNotifs = data.notifications.filter((n: Notification) => (now - n.createdAt) < fiveDaysMs);
-    if (filteredNotifs.length !== data.notifications.length) {
-      save({ ...data, notifications: filteredNotifs });
-    }
-  }, [data.notifications, save]);
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
 
   const signup = async (userData: any) => {
+    if (!userData.email || !validateEmail(userData.email)) {
+      throw new Error('รูปแบบอีเมลไม่ถูกต้อง กรุณาใช้อีเมลจริง (เช่น name@example.com)');
+    }
+
     const isFirstUser = data.users.length === 0;
     const role = isFirstUser ? 'admin' : 'user';
-    // ใช้ username เป็น ID แทนการสุ่มสร้าง UID
+    
+    if (data.users.some((u: UserProfile) => u.email.toLowerCase() === userData.email.toLowerCase())) {
+      throw new Error('อีเมลนี้ถูกใช้งานแล้ว');
+    }
+
     const newUser: UserProfile = {
       ...userData,
-      id: userData.username,
+      id: 'U' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       createdAt: Date.now(),
       role,
       following: [],
@@ -90,8 +92,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
-  const login = async (username: string, password: string) => {
-    const user = data.users.find((u: UserProfile) => u.username === username && u.password === password);
+  const login = async (email: string, password: string) => {
+    const user = data.users.find((u: UserProfile) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (user) {
       save({ ...data, currentUser: user });
       return true;
@@ -103,7 +105,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateProfile = (profileData: Partial<UserProfile>) => {
     if (!data.currentUser) return;
-    const updatedUser = { ...data.currentUser, ...profileData };
+    // ป้องกันการแก้ไขอีเมล (Account email uneditable)
+    const { email, ...rest } = profileData;
+    const updatedUser = { ...data.currentUser, ...rest };
     const updatedUsers = data.users.map((u: UserProfile) => u.id === data.currentUser?.id ? updatedUser : u);
     save({ ...data, users: updatedUsers, currentUser: updatedUser });
   };
@@ -120,7 +124,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!data.currentUser) return;
     const newFood: FoodItem = {
       ...item,
-      id: 'FOOD-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'F' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       sellerId: data.currentUser.id,
       sellerName: data.currentUser.displayName,
       rating: 0,
@@ -141,12 +145,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const placeOrder = (order: any) => {
     const newOrder: Order = {
       ...order,
-      id: 'ORD-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'O' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       createdAt: Date.now(),
       status: 'processing'
     };
     const notif: Notification = {
-      id: 'NOTI-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'N' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       userId: order.sellerId,
       type: 'order',
       title: 'มีออเดอร์ใหม่!',
@@ -170,7 +174,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!order) return;
     const updatedOrders = data.orders.map((o: Order) => o.id === orderId ? { ...o, status } : o);
     const notif: Notification = {
-      id: 'NOTI-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'N' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       userId: order.buyerId,
       type: 'status',
       title: 'อัปเดตสถานะออเดอร์',
@@ -184,11 +188,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const sendMessage = (msg: any) => {
     const newMsg: ChatMessage = {
       ...msg,
-      id: 'MSG-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       createdAt: Date.now()
     };
     const notif: Notification = {
-      id: 'NOTI-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'N' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       userId: msg.receiverId,
       type: 'message',
       title: 'ข้อความใหม่',
@@ -207,10 +211,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addReview = (review: any) => {
     const newReview: Review = {
       ...review,
-      id: 'REV-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: 'R' + Math.random().toString(36).substr(2, 9).toUpperCase(),
       createdAt: Date.now()
     };
-    
     const food = data.foodItems.find((f: FoodItem) => f.id === review.foodId);
     if (food) {
       const newCount = food.reviewCount + 1;

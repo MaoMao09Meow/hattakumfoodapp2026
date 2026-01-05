@@ -3,30 +3,49 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#db2777">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/icons/svg?seed=food&backgroundColor=db2777">
     <title>Sue AhHahn - ซื้ออาหาร</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Mali:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
+        }
         body {
             font-family: 'Mali', cursive;
-            background-color: #f8f9fa;
+            background-color: #f9fafb;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            scroll-behavior: smooth;
         }
-        /* Custom scrollbar for better look */
+        input, textarea {
+            user-select: text;
+            font-size: 16px !important; /* Prevents iOS auto-zoom */
+        }
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         ::-webkit-scrollbar-track {
             background: #f1f1f1;
         }
         ::-webkit-scrollbar-thumb {
-            background: #FF69B4;
+            background: #db2777;
             border-radius: 10px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #ff4da6;
+        .nav-blur {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .active-nav-item {
+            transform: translateY(-4px);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
     </style>
 <script type="importmap">
@@ -40,7 +59,14 @@
 }
 </script>
 </head>
-<body class="overflow-x-hidden">
+<body class="overflow-x-hidden antialiased text-blue-950">
     <div id="root"></div>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>

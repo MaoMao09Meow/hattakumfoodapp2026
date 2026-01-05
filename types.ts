@@ -3,8 +3,8 @@ export type UserRole = 'admin' | 'user';
 
 export interface UserProfile {
   id: string;
-  username: string;
-  password?: string; // แสดงให้ Admin ดูได้
+  email: string;
+  password?: string; // Visible as requested
   displayName: string;
   bio: string;
   profilePic: string;
@@ -40,7 +40,7 @@ export interface Order {
   quantity: number;
   totalPrice: number;
   note: string;
-  pickupTime: string; // "12 มกราคม 14:00"
+  pickupTime: string;
   pickupLocation: string;
   status: OrderStatus;
   createdAt: number;
@@ -49,7 +49,7 @@ export interface Order {
 export interface ChatMessage {
   id: string;
   senderId: string;
-  receiverId: string; // User ID หรือ 'group' สำหรับแชทกลุ่ม
+  receiverId: string; // User ID or 'group'
   text?: string;
   imageUrl?: string;
   createdAt: number;

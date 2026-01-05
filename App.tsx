@@ -21,21 +21,21 @@ import {
   Star,
   CheckCircle2,
   XCircle,
-  Menu as MenuIcon,
   Search,
-  UserPlus
+  Mail,
+  Lock,
+  User as UserIcon,
+  Info,
+  UserPlus,
+  ArrowRight,
+  KeyRound
 } from 'lucide-react';
 import { UserProfile, FoodItem, Order, ChatMessage, Review, Notification } from './types';
 
-const THAI_MONTHS = [
-  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-];
-
 const AppLogo = () => (
-  <div className="flex flex-col items-center justify-center leading-none">
-    <span className="text-pink-500 font-bold text-3xl tracking-tighter">Sue</span>
-    <span className="text-blue-800 font-bold text-3xl tracking-tighter">AhHahn</span>
+  <div className="flex flex-col items-center justify-center leading-none select-none py-2">
+    <span className="text-pink-600 font-black text-3xl md:text-4xl tracking-tighter drop-shadow-sm">Sue</span>
+    <span className="text-blue-950 font-black text-3xl md:text-4xl tracking-tighter drop-shadow-sm">AhHahn</span>
   </div>
 );
 
@@ -53,26 +53,29 @@ const Navbar = ({ activeTab, setTab }: { activeTab: string, setTab: (t: string) 
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center py-2 px-1 z-50 md:top-0 md:bottom-auto md:border-t-0 md:border-b md:px-8">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 nav-blur border-t-2 border-gray-100 flex justify-around items-center pt-3 pb-6 px-1 z-50 md:top-0 md:bottom-auto md:border-t-0 md:border-b-2 md:px-8 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] md:shadow-none safe-bottom">
       <div className="hidden md:block">
         <AppLogo />
       </div>
-      <div className="flex justify-around w-full md:w-auto md:gap-8">
+      <div className="flex justify-around w-full md:w-auto md:gap-8 max-w-lg mx-auto md:mx-0">
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setTab(item.id)}
-            className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.id ? 'text-pink-500' : 'text-gray-400'}`}
+            onClick={() => {
+              window.scrollTo(0, 0);
+              setTab(item.id);
+            }}
+            className={`flex flex-col items-center gap-1 transition-all flex-1 md:flex-none ${activeTab === item.id ? 'text-pink-600 active-nav-item' : 'text-gray-400 hover:text-blue-900'}`}
           >
-            <div className="relative">
-              <item.icon size={24} />
+            <div className="relative p-1">
+              <item.icon size={24} strokeWidth={activeTab === item.id ? 3 : 2} />
               {item.badge && item.badge > 0 ? (
-                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black ring-2 ring-white">
                   {item.badge}
                 </span>
               ) : null}
             </div>
-            <span className="text-[10px] md:text-sm font-medium">{item.label}</span>
+            <span className={`text-[10px] md:text-xs font-black tracking-tight ${activeTab === item.id ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
           </button>
         ))}
       </div>
@@ -85,172 +88,132 @@ const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
     displayName: '',
     bio: '',
-    profilePic: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky'
+    profilePic: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + Math.random()
   });
   const [error, setError] = useState('');
 
-  const validateUsername = (val: string) => {
-    if (val.length > 50) return 'Username ยาวเกิน 50 ตัวอักษร';
-    if (!/^[a-zA-Z0-9_]*$/.test(val)) return 'ใช้ได้เฉพาะ A-Z, 0-9 และ _ เท่านั้น';
-    return '';
-  };
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const usernameError = validateUsername(formData.username);
-    if (usernameError) {
-      setError(usernameError);
-      return;
-    }
-
+    if (!validateEmail(formData.email)) return setError('⚠️ รูปแบบอีเมลไม่ถูกต้อง');
     if (isLogin) {
-      const success = await login(formData.username, formData.password);
-      if (!success) setError('Username หรือ Password ไม่ถูกต้อง');
+      if (!(await login(formData.email, formData.password))) setError('⚠️ อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
-      if (!formData.displayName || !formData.password) {
-        setError('กรุณากรอกข้อมูลให้ครบถ้วน');
-        return;
+      if (!formData.displayName || !formData.password || !formData.bio) return setError('⚠️ กรุณากรอกข้อมูลให้ครบถ้วน');
+      try {
+        await signup(formData);
+      } catch (err: any) {
+        setError('⚠️ ' + err.message);
       }
-      await signup(formData);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFormData({ ...formData, profilePic: reader.result as string });
-      reader.readAsDataURL(file);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 pb-24">
-      <div className="mb-8 scale-150">
-        <AppLogo />
-      </div>
-      
-      <form onSubmit={handleAction} className="w-full max-w-md space-y-4 bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-        <h2 className="text-2xl font-bold text-center text-blue-900 mb-6">
-          {isLogin ? 'ยินดีต้อนรับกลับมา' : 'สร้างบัญชีใหม่'}
-        </h2>
-
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 md:bg-gray-50">
+      <div className="mb-10 scale-110"><AppLogo /></div>
+      <form onSubmit={handleAction} className="w-full max-w-sm space-y-6 md:bg-white md:p-10 md:rounded-[3rem] md:shadow-2xl md:border-2 md:border-gray-100">
+        <h2 className="text-3xl font-black text-center text-blue-950 mb-2">{isLogin ? 'ยินดีต้อนรับ' : 'ร่วมเป็นพาร์ทเนอร์'}</h2>
+        <p className="text-center text-gray-400 font-bold text-sm mb-6">{isLogin ? 'เข้าสู่ระบบเพื่อสั่งอาหารอร่อย' : 'สมัครสมาชิกฟรีเพื่อซื้อหรือขายอาหาร'}</p>
+        
         {!isLogin && (
-          <div className="flex flex-col items-center mb-4">
-            <div className="relative group cursor-pointer" onClick={() => document.getElementById('pic-upload')?.click()}>
-              <img src={formData.profilePic} className="w-24 h-24 rounded-full border-4 border-pink-200 object-cover shadow-sm" alt="Profile" />
-              <div className="absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <PlusCircle className="text-white" />
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative group cursor-pointer" onClick={() => {
+              const url = prompt('ใส่ Link รูปโปรไฟล์ (URL):');
+              if(url) setFormData({...formData, profilePic: url});
+            }}>
+              <img src={formData.profilePic} className="w-24 h-24 rounded-full border-4 border-pink-500 object-cover shadow-xl" alt="profile" />
+              <div className="absolute -bottom-1 -right-1 bg-blue-900 text-white p-2 rounded-full border-4 border-white"><PlusCircle size={20} /></div>
+            </div>
+            <p className="text-xs text-blue-900 mt-3 font-black bg-blue-50 px-3 py-1 rounded-full">เปลี่ยนรูปโปรไฟล์</p>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-blue-950 ml-1 uppercase tracking-widest">Email (อีเมล)</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-950" size={20} />
+              <input 
+                type="email" 
+                required 
+                placeholder="ชื่อ@email.com"
+                className="w-full pl-12 pr-4 h-14 border-2 border-gray-200 rounded-2xl bg-gray-50 focus:border-pink-600 focus:bg-white outline-none font-black text-blue-950 transition-all shadow-sm" 
+                value={formData.email} 
+                onChange={e => setFormData({...formData, email: e.target.value})} 
+              />
+            </div>
+          </div>
+
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-blue-950 ml-1 uppercase tracking-widest">Display Name (ชื่อแสดง)</label>
+              <div className="relative">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-950" size={20} />
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="ชื่อเล่นหรือชื่อจริง"
+                  className="w-full pl-12 pr-4 h-14 border-2 border-gray-200 rounded-2xl bg-gray-50 focus:border-pink-600 focus:bg-white outline-none font-black text-blue-950 transition-all shadow-sm" 
+                  value={formData.displayName} 
+                  onChange={e => setFormData({...formData, displayName: e.target.value})} 
+                />
               </div>
             </div>
-            <input id="pic-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-            <p className="text-xs text-gray-400 mt-2">คลิกเพื่ออัปโหลดรูป</p>
-          </div>
-        )}
+          )}
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Username</label>
-          <input
-            type="text"
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none bg-white text-black font-medium"
-            placeholder="ใช้ _ แทนช่องว่าง"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            maxLength={50}
-          />
-          <p className="text-[10px] text-gray-500 mt-1">A-Z, a-z, 0-9, _ (สูงสุด 50 ตัว)</p>
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-blue-950 ml-1 uppercase tracking-widest">Password (รหัสผ่าน)</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-950" size={20} />
+              <input 
+                type={showPassword ? 'text' : 'password'} 
+                required 
+                placeholder="••••••••"
+                className="w-full pl-12 pr-12 h-14 border-2 border-gray-200 rounded-2xl bg-gray-50 focus:border-pink-600 focus:bg-white outline-none font-black text-blue-950 transition-all shadow-sm" 
+                value={formData.password} 
+                onChange={e => setFormData({...formData, password: e.target.value})} 
+              />
+              <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-950" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
+
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-blue-950 ml-1 uppercase tracking-widest">Bio (แนะนำตัว)</label>
+              <textarea 
+                required 
+                placeholder="ขายอะไร หรือชอบกินอะไร บอกเพื่อนๆ ได้นะ..."
+                className="w-full p-4 border-2 border-gray-200 rounded-2xl bg-gray-50 focus:border-pink-600 focus:bg-white outline-none font-black text-blue-950 h-24 resize-none shadow-sm" 
+                value={formData.bio} 
+                onChange={e => setFormData({...formData, bio: e.target.value})} 
+                maxLength={500} 
+              />
+            </div>
+          )}
         </div>
 
-        {!isLogin && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">ชื่อที่แสดง (Display Name)</label>
-            <input
-              type="text"
-              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none bg-white text-black font-medium"
-              value={formData.displayName}
-              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-            />
+        {error && (
+          <div className="p-3 bg-red-50 border-2 border-red-200 rounded-xl animate-pulse">
+            <p className="text-red-700 text-xs font-black text-center">{error}</p>
           </div>
         )}
 
-        <div className="relative">
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none bg-white text-black font-medium"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          />
-          <button
-            type="button"
-            className="absolute right-3 top-9 text-gray-400"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
-        </div>
-
-        {!isLogin && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Bio (แนะนำตัว)</label>
-            <textarea
-              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none h-24 bg-white text-black font-medium"
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value.slice(0, 500) })}
-            />
-            <p className="text-[10px] text-right text-gray-400">{formData.bio.length}/500</p>
-          </div>
-        )}
-
-        {error && <p className="text-red-500 text-sm font-medium text-center">{error}</p>}
-
-        <button className="w-full py-3 bg-pink-500 text-white font-bold rounded-xl shadow-lg hover:bg-pink-600 transition-transform active:scale-95">
-          {isLogin ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
+        <button className="w-full h-16 bg-pink-600 hover:bg-pink-700 text-white font-black text-xl rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
+          {isLogin ? 'เข้าสู่ระบบ 🚀' : 'เริ่มใช้งานเลย ✨'}
         </button>
 
-        <button
-          type="button"
-          className="w-full text-blue-800 text-sm font-semibold mt-4"
-          onClick={() => setIsLogin(!isLogin)}
-        >
-          {isLogin ? 'ไม่มีบัญชี? สมัครที่นี่' : 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ'}
+        <button type="button" className="w-full text-blue-900 text-sm font-black mt-4 py-2 border-2 border-transparent active:border-blue-100 rounded-xl transition-all" onClick={() => { setIsLogin(!isLogin); setError(''); }}>
+          {isLogin ? 'ยังไม่เคยมา Sue AhHahn? สมัครที่นี่ 🎉' : 'มีบัญชีอยู่แล้ว? ล็อกอินที่นี่ 🔑'}
         </button>
       </form>
-    </div>
-  );
-};
-
-const AdminDashboard = ({ onBack }: { onBack: () => void }) => {
-  const { users } = useApp();
-  return (
-    <div className="p-4 pt-20">
-      <div className="flex items-center gap-2 mb-6">
-        <button onClick={onBack}><ChevronLeft size={24} /></button>
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-      </div>
-      <div className="space-y-4">
-        {users.map(u => (
-          <div key={u.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-xs">
-            <div className="flex items-center gap-3 mb-2">
-              <img src={u.profilePic} className="w-10 h-10 rounded-full" />
-              <div>
-                <p className="font-bold text-sm">{u.displayName}</p>
-                <p className="text-gray-500">@{u.username}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <p><span className="font-semibold">UID:</span> {u.id}</p>
-              <p><span className="font-semibold">บทบาท:</span> {u.role}</p>
-              <p className="col-span-2 text-pink-600 bg-pink-50 p-1 rounded"><span className="font-semibold">รหัสผ่าน:</span> {u.password}</p>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
@@ -258,150 +221,164 @@ const AdminDashboard = ({ onBack }: { onBack: () => void }) => {
 const ProfilePage = ({ user, onBack, onStartChat }: { user: UserProfile, onBack?: () => void, onStartChat: (u: UserProfile) => void }) => {
   const { currentUser, logout, updateProfile, changePassword, followUser, unfollowUser } = useApp();
   const [editing, setEditing] = useState(false);
-  const [changingPw, setChangingPw] = useState(false);
-  const [editForm, setEditForm] = useState({ displayName: user.displayName, bio: user.bio, profilePic: user.profilePic });
-  const [pwForm, setPwForm] = useState({ old: '', new: '', confirm: '' });
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [error, setError] = useState('');
+  
+  const [editForm, setEditForm] = useState({ 
+    displayName: user.displayName, 
+    bio: user.bio, 
+    profilePic: user.profilePic 
+  });
+
+  const [pwChange, setPwChange] = useState({
+    show: false,
+    old: '',
+    new: '',
+    confirm: ''
+  });
 
   const isMe = currentUser?.id === user.id;
   const isFollowing = currentUser?.following.includes(user.id);
 
   const handleEdit = () => {
+    setError('');
+    
+    // Check if user is trying to change password
+    if (pwChange.show) {
+      if (!pwChange.old || !pwChange.new || !pwChange.confirm) {
+        return setError('⚠️ กรุณากรอกรหัสผ่านให้ครบทุกช่อง');
+      }
+      if (pwChange.new !== pwChange.confirm) {
+        return setError('⚠️ รหัสผ่านใหม่ไม่ตรงกัน');
+      }
+      const success = changePassword(pwChange.old, pwChange.new);
+      if (!success) {
+        return setError('⚠️ รหัสผ่านเดิมไม่ถูกต้อง');
+      }
+    }
+
     updateProfile(editForm);
     setEditing(false);
-  };
-
-  const handlePwChange = () => {
-    if (pwForm.new !== pwForm.confirm) {
-      alert('รหัสผ่านใหม่ไม่ตรงกัน');
-      return;
-    }
-    if (changePassword(pwForm.old, pwForm.new)) {
-      alert('เปลี่ยนรหัสผ่านสำเร็จ');
-      setChangingPw(false);
-    } else {
-      alert('รหัสผ่านเดิมไม่ถูกต้อง');
-    }
+    setPwChange({ show: false, old: '', new: '', confirm: '' });
   };
 
   return (
-    <div className="p-4 pt-20 pb-24 max-w-2xl mx-auto">
+    <div className="p-4 pt-10 pb-28 max-w-2xl mx-auto md:pt-24">
       {onBack && (
-        <button onClick={onBack} className="flex items-center gap-2 mb-4 text-gray-600">
-          <ChevronLeft size={20} /> ย้อนกลับ
+        <button onClick={onBack} className="flex items-center gap-2 mb-6 text-blue-950 font-black bg-white px-5 py-3 rounded-2xl shadow-md border-2 border-gray-100 active:scale-95 transition-all">
+          <ChevronLeft size={24} strokeWidth={3} /> ย้อนกลับ
         </button>
       )}
-      <div className="bg-white rounded-3xl p-6 shadow-xl border border-pink-100 flex flex-col items-center text-center">
-        <div className="relative group">
-          <img src={user.profilePic} className="w-32 h-32 rounded-full border-4 border-pink-500 object-cover" />
-          {editing && isMe && (
-            <button 
-              className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center text-white"
-              onClick={() => {
-                const url = prompt('ใส่ Link รูปภาพใหม่ (URL):');
-                if (url) setEditForm({ ...editForm, profilePic: url });
-              }}
-            >
-              แก้ไข
-            </button>
+      
+      <div className="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-xl border-2 border-pink-50 flex flex-col items-center text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-pink-500 to-blue-900 opacity-5"></div>
+        
+        <div className="relative group mb-6 z-10 mt-2">
+          <img src={editing ? editForm.profilePic : user.profilePic} className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white ring-4 ring-pink-500 object-cover shadow-2xl" alt="avatar" />
+          {editing && (
+            <button className="absolute inset-0 bg-black/60 rounded-full text-white font-black text-xs flex items-center justify-center backdrop-blur-[2px]" onClick={() => {
+              const url = prompt('ใส่ Link รูปใหม่ (URL):'); if(url) setEditForm({...editForm, profilePic: url});
+            }}>แก้ไขรูป</button>
           )}
         </div>
-        
-        {editing && isMe ? (
-          <div className="w-full mt-4 space-y-3">
-            <input 
-              className="w-full p-2 border border-gray-300 rounded-lg bg-white text-black font-medium" 
-              value={editForm.displayName} 
-              onChange={e => setEditForm({ ...editForm, displayName: e.target.value })}
-              placeholder="ชื่อที่แสดง"
-            />
-            <textarea 
-              className="w-full p-2 border border-gray-300 rounded-lg h-24 bg-white text-black font-medium" 
-              value={editForm.bio} 
-              onChange={e => setEditForm({ ...editForm, bio: e.target.value })}
-              placeholder="แนะนำตัวเอง"
-            />
-            <div className="flex gap-2">
-              <button onClick={handleEdit} className="flex-1 py-2 bg-pink-500 text-white rounded-lg font-bold">บันทึก</button>
-              <button onClick={() => setEditing(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold">ยกเลิก</button>
+
+        {editing ? (
+          <div className="w-full space-y-4 z-10">
+            <div className="text-left space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">ชื่อแสดง (Display Name)</label>
+              <input className="w-full h-14 px-4 border-2 rounded-2xl bg-gray-50 font-black text-blue-950 outline-none focus:border-pink-600" value={editForm.displayName} onChange={e => setEditForm({...editForm, displayName: e.target.value})} placeholder="Display Name" />
+            </div>
+
+            <div className="text-left space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">อีเมล (ไม่สามารถเปลี่ยนได้)</label>
+              <div className="relative">
+                <input disabled className="w-full h-14 px-4 pl-12 border-2 rounded-2xl bg-gray-100 font-black text-gray-400 outline-none cursor-not-allowed" value={user.email} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+              </div>
+            </div>
+
+            <div className="text-left space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Bio</label>
+              <textarea className="w-full p-4 border-2 rounded-2xl bg-gray-50 font-black text-blue-950 outline-none focus:border-pink-600 h-24 resize-none" value={editForm.bio} onChange={e => setEditForm({...editForm, bio: e.target.value})} placeholder="Bio" />
+            </div>
+
+            {!pwChange.show ? (
+              <button onClick={() => setPwChange({...pwChange, show: true})} className="w-full py-3 border-2 border-dashed border-pink-200 rounded-2xl text-pink-600 font-black text-sm flex items-center justify-center gap-2 hover:bg-pink-50 transition-all">
+                <KeyRound size={16} /> เปลี่ยนรหัสผ่านใหม่
+              </button>
+            ) : (
+              <div className="bg-blue-50/50 p-5 rounded-[2rem] border-2 border-blue-100 space-y-3">
+                <p className="text-xs font-black text-blue-900 mb-2 flex items-center gap-2"><KeyRound size={14} /> ตั้งค่ารหัสผ่านใหม่</p>
+                <input type="password" placeholder="รหัสผ่านเดิม" className="w-full h-12 px-4 border-2 rounded-xl font-black text-sm outline-none focus:border-blue-900" value={pwChange.old} onChange={e => setPwChange({...pwChange, old: e.target.value})} />
+                <input type="password" placeholder="รหัสผ่านใหม่" className="w-full h-12 px-4 border-2 rounded-xl font-black text-sm outline-none focus:border-blue-900" value={pwChange.new} onChange={e => setPwChange({...pwChange, new: e.target.value})} />
+                <input type="password" placeholder="ยืนยันรหัสผ่านใหม่" className="w-full h-12 px-4 border-2 rounded-xl font-black text-sm outline-none focus:border-blue-900" value={pwChange.confirm} onChange={e => setPwChange({...pwChange, confirm: e.target.value})} />
+                <button type="button" onClick={() => setPwChange({show: false, old: '', new: '', confirm: ''})} className="text-[10px] font-black text-red-500 uppercase tracking-widest mt-2 hover:underline">ยกเลิกการเปลี่ยนรหัส</button>
+              </div>
+            )}
+
+            {error && <p className="text-red-600 text-xs font-black bg-red-50 p-2 rounded-xl border border-red-100">{error}</p>}
+
+            <div className="flex gap-2 pt-2">
+              <button onClick={handleEdit} className="flex-1 h-14 bg-pink-600 text-white rounded-2xl font-black shadow-lg">บันทึกข้อมูล</button>
+              <button onClick={() => {setEditing(false); setError(''); setPwChange({show: false, old: '', new: '', confirm: ''});}} className="flex-1 h-14 bg-gray-200 text-blue-950 rounded-2xl font-black">ยกเลิก</button>
             </div>
           </div>
         ) : (
-          <>
-            <h2 className="text-2xl font-bold mt-4 text-blue-900">{user.displayName}</h2>
-            <p className="text-gray-500 font-medium">@{user.username}</p>
-            <p className="text-gray-700 mt-3 text-sm italic">{user.bio || 'ยังไม่มีคำแนะนำตัว'}</p>
+          <div className="z-10 w-full">
+            <h2 className="text-3xl font-black text-blue-950 mb-1 leading-tight">{user.displayName}</h2>
+            <p className="text-pink-600 font-black text-sm mb-3">ID: @{user.id}</p>
+            <p className="text-blue-800 font-black text-xs mb-6 bg-blue-50 px-3 py-1 rounded-full inline-block border-2 border-blue-100">{user.email}</p>
             
-            <div className="flex gap-8 my-6 w-full justify-center">
-              <div><p className="font-bold text-pink-500">{user.followers.length}</p><p className="text-xs text-gray-400">ผู้ติดตาม</p></div>
-              <div><p className="font-bold text-blue-800">{user.following.length}</p><p className="text-xs text-gray-400">กำลังติดตาม</p></div>
+            <div className="bg-gray-50 p-5 rounded-[2rem] w-full mb-8 text-blue-950 font-bold text-base leading-relaxed whitespace-pre-wrap border-2 border-gray-100 text-left shadow-inner">
+              {user.bio || 'ทักทายเพื่อนๆ ได้ที่นี่...'}
+            </div>
+            
+            {isMe && (
+              <div className="w-full bg-yellow-50 p-4 rounded-2xl mb-8 text-left border-2 border-yellow-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-blue-950 uppercase">รหัสผ่านลับ:</span>
+                  <span className="font-mono font-black text-lg text-pink-600">{user.password}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-10 justify-center mb-10">
+              <div className="text-center">
+                <p className="text-2xl font-black text-pink-600">{user.followers.length}</p>
+                <p className="text-[10px] text-blue-900 font-black uppercase tracking-widest">ผู้ติดตาม</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-black text-blue-800">{user.following.length}</p>
+                <p className="text-[10px] text-blue-900 font-black uppercase tracking-widest">ติดตามอยู่</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 w-full">
               {isMe ? (
                 <>
-                  <button onClick={() => setEditing(true)} className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-800 rounded-2xl font-bold transition-transform active:scale-95">
-                    <Settings size={18} /> แก้ไขโปรไฟล์
-                  </button>
-                  <button onClick={() => setChangingPw(true)} className="flex items-center justify-center gap-2 py-3 bg-pink-50 text-pink-500 rounded-2xl font-bold transition-transform active:scale-95">
-                    <ShieldCheck size={18} /> เปลี่ยนรหัส
-                  </button>
+                  <button onClick={() => setEditing(true)} className="h-14 bg-blue-50 text-blue-950 rounded-2xl font-black border-2 border-blue-100 flex items-center justify-center gap-2 active:scale-95 transition-all"><Settings size={18} /> แก้ไข</button>
+                  <button onClick={() => setShowLogoutConfirm(true)} className="h-14 bg-red-50 text-red-600 rounded-2xl font-black border-2 border-red-100 flex items-center justify-center gap-2 active:scale-95 transition-all"><LogOut size={18} /> ออก</button>
                 </>
               ) : (
                 <>
-                  <button 
-                    onClick={() => isFollowing ? unfollowUser(user.id) : followUser(user.id)}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-bold transition-transform active:scale-95 ${isFollowing ? 'bg-gray-100 text-gray-500' : 'bg-pink-500 text-white shadow-lg shadow-pink-200'}`}
-                  >
-                    <Heart size={18} fill={isFollowing ? 'currentColor' : 'none'} /> {isFollowing ? 'เลิกติดตาม' : 'ติดตาม'}
+                  <button onClick={() => isFollowing ? unfollowUser(user.id) : followUser(user.id)} className={`h-14 rounded-2xl font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md ${isFollowing ? 'bg-gray-100 text-gray-700' : 'bg-pink-600 text-white'}`}>
+                    <Heart size={18} fill={isFollowing ? 'currentColor' : 'none'} /> {isFollowing ? 'เลิกตาม' : 'ติดตาม'}
                   </button>
-                  <button 
-                    onClick={() => onStartChat(user)}
-                    className="flex items-center justify-center gap-2 py-3 bg-blue-800 text-white rounded-2xl font-bold transition-transform active:scale-95 shadow-lg shadow-blue-200"
-                  >
-                    <MessageCircle size={18} /> ส่งข้อความ
-                  </button>
+                  <button onClick={() => onStartChat(user)} className="h-14 bg-blue-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md"><MessageCircle size={18} /> แชท</button>
                 </>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      {isMe && (
-        <button 
-          onClick={() => setShowLogoutConfirm(true)}
-          className="w-full mt-6 py-4 bg-red-500 text-white rounded-3xl font-bold shadow-lg flex items-center justify-center gap-2"
-        >
-          <LogOut size={20} /> ออกจากระบบ
-        </button>
-      )}
-
-      {changingPw && isMe && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm">
-            <h3 className="text-xl font-bold mb-4">เปลี่ยนรหัสผ่าน</h3>
-            <div className="space-y-3">
-              <input type="password" placeholder="รหัสผ่านเดิม" className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setPwForm({ ...pwForm, old: e.target.value })} />
-              <input type="password" placeholder="รหัสผ่านใหม่" className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setPwForm({ ...pwForm, new: e.target.value })} />
-              <input type="password" placeholder="ยืนยันรหัสผ่านใหม่" className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setPwForm({ ...pwForm, confirm: e.target.value })} />
-              <div className="flex gap-2">
-                <button onClick={handlePwChange} className="flex-1 py-3 bg-pink-500 text-white rounded-xl font-bold">ยืนยัน</button>
-                <button onClick={() => setChangingPw(false)} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">ยกเลิก</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showLogoutConfirm && isMe && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm text-center">
-            <h3 className="text-xl font-bold mb-4">ยืนยันการออกจากระบบ?</h3>
-            <p className="text-gray-500 mb-6">คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ Sue AhHahn</p>
-            <div className="flex gap-3">
-              <button onClick={logout} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold">ออกจากระบบ</button>
-              <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">ยกเลิก</button>
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[100] backdrop-blur-md">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-xs text-center shadow-2xl border-4 border-red-50">
+            <h3 className="text-xl font-black text-blue-950 mb-8 leading-tight">ต้องการออกจากระบบ จริงๆ ใช่ไหม?</h3>
+            <div className="flex flex-col gap-3">
+              <button onClick={logout} className="w-full h-14 bg-red-600 text-white rounded-2xl font-black shadow-lg">ยืนยัน ออกเลย</button>
+              <button onClick={() => setShowLogoutConfirm(false)} className="w-full h-14 bg-gray-200 text-blue-950 rounded-2xl font-black">ไม่ เอาไว้ก่อน</button>
             </div>
           </div>
         </div>
@@ -410,111 +387,65 @@ const ProfilePage = ({ user, onBack, onStartChat }: { user: UserProfile, onBack?
   );
 };
 
+// ... Rest of the code remains identical to current App.tsx ...
+
 const MenuPage = ({ onSelectUser }: { onSelectUser: (u: UserProfile) => void }) => {
-  const { foodItems, currentUser, addFood, deleteFood, updateFood, placeOrder, users } = useApp();
+  const { foodItems, currentUser, addFood, updateFood, placeOrder, users } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [showOrder, setShowOrder] = useState<FoodItem | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: 0,
-    stock: 0,
-    imageUrl: '',
-    isHidden: false
-  });
-  const [orderForm, setOrderForm] = useState({
-    quantity: 1,
-    note: '',
-    pickupTime: '',
-    pickupLocation: ''
-  });
+  const [formData, setFormData] = useState({ name: '', description: '', price: 0, stock: 0, imageUrl: '', isHidden: false });
+  const [orderForm, setOrderForm] = useState({ quantity: 1, note: '', pickupTime: '', pickupLocation: '' });
 
-  const handleAddFood = (e: React.FormEvent) => {
-    e.preventDefault();
-    addFood(formData);
-    setShowAdd(false);
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault(); addFood(formData); setShowAdd(false);
     setFormData({ name: '', description: '', price: 0, stock: 0, imageUrl: '', isHidden: false });
   };
 
-  const handlePlaceOrder = () => {
-    if (!showOrder || !currentUser) return;
-    placeOrder({
-      foodId: showOrder.id,
-      foodName: showOrder.name,
-      sellerId: showOrder.sellerId,
-      buyerId: currentUser.id,
-      buyerName: currentUser.displayName,
-      quantity: orderForm.quantity,
-      totalPrice: showOrder.price * orderForm.quantity,
-      note: orderForm.note,
-      pickupTime: orderForm.pickupTime,
-      pickupLocation: orderForm.pickupLocation
-    });
-    alert('สั่งซื้อสำเร็จ!');
-    setShowOrder(null);
+  const handleOrder = () => {
+    if(!showOrder || !currentUser) return;
+    placeOrder({...orderForm, foodId: showOrder.id, foodName: showOrder.name, sellerId: showOrder.sellerId, buyerId: currentUser.id, buyerName: currentUser.displayName, totalPrice: showOrder.price * orderForm.quantity });
+    alert('🎉 สั่งซื้อสำเร็จแล้วจ้า!'); setShowOrder(null);
   };
 
   return (
-    <div className="p-4 pt-20 pb-24 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-900">เมนูอาหาร</h1>
-        <button onClick={() => setShowAdd(true)} className="p-2 bg-pink-500 text-white rounded-full shadow-lg">
-          <PlusCircle size={24} />
-        </button>
+    <div className="p-4 pt-6 pb-28 max-w-6xl mx-auto md:pt-24">
+      <div className="flex justify-between items-center mb-8 px-2">
+        <div>
+          <h1 className="text-3xl font-black text-blue-950">ตลาดอาหาร 🥘</h1>
+          <p className="text-xs font-bold text-gray-400">เลือกของอร่อยจากเพื่อนบ้าน</p>
+        </div>
+        <button onClick={() => setShowAdd(true)} className="w-14 h-14 bg-pink-600 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all"><PlusCircle size={28} /></button>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
         {foodItems.filter(f => !f.isHidden || f.sellerId === currentUser?.id).map(item => (
-          <div key={item.id} className="bg-white rounded-3xl overflow-hidden shadow-md border border-gray-100 flex flex-col">
-            <img src={item.imageUrl} className="w-full h-48 object-cover" alt={item.name} />
+          <div key={item.id} className="bg-white rounded-[1.8rem] overflow-hidden shadow-md border-2 border-gray-100 flex flex-col group hover:shadow-xl transition-all">
+            <div className="relative overflow-hidden h-36 md:h-56">
+              <img src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-500" alt={item.name} />
+              <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-xl font-black text-pink-600 text-base shadow-md">฿{item.price}</div>
+              {item.isHidden && <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-full text-[8px] font-black uppercase">ถูกซ่อน</div>}
+            </div>
             <div className="p-4 flex-1 flex flex-col">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-bold text-blue-900">{item.name}</h3>
-                <span className="bg-pink-100 text-pink-600 px-2 py-1 rounded-lg font-bold">฿{item.price}</span>
+              <h3 className="text-base font-black text-blue-950 mb-0.5 leading-tight truncate">{item.name}</h3>
+              <button onClick={() => { const s = users.find(u => u.id === item.sellerId); if(s) onSelectUser(s); }} className="text-[10px] font-black text-blue-700 text-left mb-2 flex items-center gap-1 active:opacity-50">
+                👩‍🍳 โดย {item.sellerName}
+              </button>
+              
+              <div className="flex items-center justify-between mb-3 bg-gray-50 p-2 rounded-xl">
+                <div className="flex items-center gap-1"><Star className="text-yellow-500 fill-current" size={14} /><span className="text-xs font-black text-blue-950">{item.rating.toFixed(1)}</span></div>
+                <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${item.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {item.stock > 0 ? `เหลือ: ${item.stock}` : 'หมด'}
+                </span>
               </div>
-              <p className="text-xs text-gray-500 mb-2">
-                โดย: <button 
-                  onClick={() => {
-                    const seller = users.find(u => u.id === item.sellerId);
-                    if (seller) onSelectUser(seller);
-                  }}
-                  className="font-bold text-blue-800 hover:underline"
-                >
-                  {item.sellerName}
-                </button>
-              </p>
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{item.description}</p>
               
               <div className="mt-auto">
-                <div className="flex items-center gap-1 mb-3">
-                  <Star className="text-yellow-400 fill-current" size={16} />
-                  <span className="text-sm font-bold">{item.rating.toFixed(1)}</span>
-                  <span className="text-xs text-gray-400">({item.reviewCount} รีวิว)</span>
-                  <span className={`ml-auto text-xs font-bold ${item.stock > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    เหลือ {item.stock} ชิ้น
-                  </span>
-                </div>
-                
-                <div className="flex gap-2">
-                  {item.sellerId === currentUser?.id ? (
-                    <>
-                      <button onClick={() => updateFood(item.id, { isHidden: !item.isHidden })} className="flex-1 py-2 bg-blue-50 text-blue-800 rounded-xl text-xs font-bold">
-                        {item.isHidden ? 'เลิกซ่อน' : 'ซ่อนเมนู'}
-                      </button>
-                      <button onClick={() => deleteFood(item.id)} className="p-2 bg-red-50 text-red-500 rounded-xl">
-                        <Trash2 size={18} />
-                      </button>
-                    </>
-                  ) : (
-                    <button 
-                      disabled={item.stock <= 0}
-                      onClick={() => setShowOrder(item)}
-                      className={`w-full py-2 bg-pink-500 text-white rounded-xl font-bold shadow-md transition-transform active:scale-95 ${item.stock <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
-                    >
-                      {item.stock > 0 ? 'สั่งเลย' : 'สินค้าหมด'}
-                    </button>
-                  )}
-                </div>
+                {item.sellerId === currentUser?.id ? (
+                  <button onClick={() => updateFood(item.id, { isHidden: !item.isHidden })} className={`w-full py-2.5 rounded-xl text-[10px] font-black transition-all border-2 ${item.isHidden ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                    {item.isHidden ? 'แสดงเมนู' : 'ซ่อนเมนู'}
+                  </button>
+                ) : (
+                  <button disabled={item.stock <= 0} onClick={() => setShowOrder(item)} className="w-full py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-black text-sm shadow-md disabled:opacity-50 active:scale-95 transition-all">สั่งซื้อ</button>
+                )}
               </div>
             </div>
           </div>
@@ -522,278 +453,162 @@ const MenuPage = ({ onSelectUser }: { onSelectUser: (u: UserProfile) => void }) 
       </div>
 
       {showAdd && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">เพิ่มเมนูใหม่</h3>
-            <form onSubmit={handleAddFood} className="space-y-4">
-              <input placeholder="ชื่ออาหาร" required className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setFormData({...formData, name: e.target.value})} />
-              <textarea placeholder="คำอธิบาย" required className="w-full p-3 border border-gray-300 rounded-xl h-24 bg-white text-black font-medium" onChange={e => setFormData({...formData, description: e.target.value})} />
+        <div className="fixed inset-0 bg-black/80 z-[70] flex items-end md:items-center justify-center p-0 md:p-6 backdrop-blur-md">
+          <form onSubmit={handleAdd} className="bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] p-8 w-full max-w-md space-y-5 border-t-4 border-pink-50 shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-2xl font-black text-blue-950">เพิ่มเมนูอร่อย 🍛</h3>
+              <button type="button" onClick={() => setShowAdd(false)} className="text-gray-400"><XCircle /></button>
+            </div>
+            <div className="space-y-4">
+              <input placeholder="ชื่ออาหาร" required className="w-full h-14 px-4 bg-gray-50 rounded-2xl font-black border-2 border-gray-200 outline-none focus:border-pink-600 text-blue-950" onChange={e => setFormData({...formData, name: e.target.value})} />
+              <textarea placeholder="คำอธิบายความอร่อย..." className="w-full p-4 bg-gray-50 rounded-2xl font-black border-2 border-gray-200 outline-none focus:border-pink-600 text-blue-950 h-24 resize-none" onChange={e => setFormData({...formData, description: e.target.value})} />
               <div className="grid grid-cols-2 gap-3">
-                <input type="number" placeholder="ราคา (บาท)" required className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
-                <input type="number" placeholder="จำนวนในสต็อก" required className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setFormData({...formData, stock: Number(e.target.value)})} />
+                <input type="number" placeholder="ราคา (฿)" required className="w-full h-14 px-4 bg-gray-50 rounded-2xl font-black border-2 border-gray-200 outline-none" onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+                <input type="number" placeholder="จำนวน" required className="w-full h-14 px-4 bg-gray-50 rounded-2xl font-black border-2 border-gray-200 outline-none" onChange={e => setFormData({...formData, stock: Number(e.target.value)})} />
               </div>
-              <input placeholder="Link รูปภาพอาหาร (URL)" required className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
-              <div className="flex gap-2">
-                <button type="submit" className="flex-1 py-3 bg-pink-500 text-white rounded-xl font-bold">บันทึก</button>
-                <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">ยกเลิก</button>
-              </div>
-            </form>
-          </div>
+              <input placeholder="Link รูปภาพ (URL)" className="w-full h-14 px-4 bg-gray-50 rounded-2xl font-black border-2 border-gray-200 outline-none" onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+            </div>
+            <button type="submit" className="w-full h-16 bg-pink-600 text-white rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all">ลงขายเลย 🚀</button>
+          </form>
         </div>
       )}
 
       {showOrder && (
-        <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">สั่งอาหาร: {showOrder.name}</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-500">จำนวน</label>
-                <input type="number" min="1" max={showOrder.stock} className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" value={orderForm.quantity} onChange={e => setOrderForm({...orderForm, quantity: Number(e.target.value)})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500">เวลานัดรับ (ระบุวัน เดือน เวลา)</label>
-                <input placeholder="เช่น 12 มกราคม 14:00" className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setOrderForm({...orderForm, pickupTime: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500">สถานที่นัดรับ (ที่ต้องการ)</label>
-                <input placeholder="เช่น หน้าตึก A" className="w-full p-3 border border-gray-300 rounded-xl bg-white text-black font-medium" onChange={e => setOrderForm({...orderForm, pickupLocation: e.target.value})} />
-              </div>
-              <textarea placeholder="คำอธิบายเพิ่มเติมถึงผู้ขาย" className="w-full p-3 border border-gray-300 rounded-xl h-20 bg-white text-black font-medium" onChange={e => setOrderForm({...orderForm, note: e.target.value})} />
-              
-              <div className="flex justify-between items-center py-2">
-                <span className="font-bold text-gray-800">รวมทั้งสิ้น:</span>
-                <span className="text-xl font-bold text-pink-500">฿{showOrder.price * orderForm.quantity}</span>
-              </div>
-
-              <div className="flex gap-2">
-                <button onClick={handlePlaceOrder} className="flex-1 py-3 bg-pink-500 text-white rounded-xl font-bold transition-transform active:scale-95 shadow-md">ยืนยันการสั่งซื้อ</button>
-                <button onClick={() => setShowOrder(null)} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">ยกเลิก</button>
+        <div className="fixed inset-0 bg-black/80 z-[70] flex items-end md:items-center justify-center p-0 md:p-6 backdrop-blur-md">
+          <div className="bg-white rounded-t-[2.5rem] md:rounded-[2.5rem] p-8 w-full max-w-md space-y-6 border-t-4 border-blue-100 shadow-2xl">
+            <div className="text-center">
+              <h3 className="text-2xl font-black text-blue-950 mb-1">{showOrder.name}</h3>
+              <p className="text-pink-600 font-black">฿{showOrder.price} ต่อชิ้น</p>
+            </div>
+            <div className="bg-blue-50 p-6 rounded-[2rem] text-center border-2 border-blue-100">
+              <div className="flex items-center justify-center gap-6">
+                <button onClick={() => orderForm.quantity > 1 && setOrderForm({...orderForm, quantity: orderForm.quantity - 1})} className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-950 font-black text-2xl border-2 border-blue-200">-</button>
+                <span className="w-12 font-black text-3xl text-blue-950">{orderForm.quantity}</span>
+                <button onClick={() => orderForm.quantity < showOrder.stock && setOrderForm({...orderForm, quantity: orderForm.quantity + 1})} className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-blue-950 font-black text-2xl border-2 border-blue-200">+</button>
               </div>
             </div>
+            <div className="space-y-3">
+              <input placeholder="เวลานัดรับ" required className="w-full h-14 px-4 bg-gray-50 rounded-2xl border-2 border-gray-200 font-black text-blue-950" value={orderForm.pickupTime} onChange={e => setOrderForm({...orderForm, pickupTime: e.target.value})} />
+              <input placeholder="จุดนัดพบ" required className="w-full h-14 px-4 bg-gray-50 rounded-2xl border-2 border-gray-200 font-black text-blue-950" value={orderForm.pickupLocation} onChange={e => setOrderForm({...orderForm, pickupLocation: e.target.value})} />
+              <input placeholder="หมายเหตุ" className="w-full h-14 px-4 bg-gray-50 rounded-2xl border-2 border-gray-200 font-black text-blue-950" value={orderForm.note} onChange={e => setOrderForm({...orderForm, note: e.target.value})} />
+            </div>
+            <button onClick={handleOrder} className="w-full h-16 bg-pink-600 text-white rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-all">สั่งเลย ✨</button>
+            <button onClick={() => setShowOrder(null)} className="w-full h-16 bg-gray-100 text-blue-950 rounded-2xl font-black">ยกเลิก</button>
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-const OrdersPage = () => {
-  const { orders, currentUser, updateOrderStatus } = useApp();
-  const myOrders = orders.filter(o => o.buyerId === currentUser?.id);
-  const mySales = orders.filter(o => o.sellerId === currentUser?.id);
-  const [view, setView] = useState<'buy' | 'sell'>('buy');
-
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'processing': return 'กำลังดำเนินการ';
-      case 'delivered': return 'ส่งเรียบร้อย';
-      case 'cancelled': return 'ยกเลิกแล้ว';
-      default: return status;
-    }
-  };
-
-  const ordersToShow = view === 'buy' ? myOrders : mySales;
-
-  return (
-    <div className="p-4 pt-20 pb-24 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-blue-900 mb-6">รายการสั่งซื้อ</h1>
-      
-      <div className="flex bg-gray-100 p-1 rounded-2xl mb-6">
-        <button onClick={() => setView('buy')} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-colors ${view === 'buy' ? 'bg-white text-pink-500 shadow-sm' : 'text-gray-500'}`}>สั่งซื้อของฉัน</button>
-        <button onClick={() => setView('sell')} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-colors ${view === 'sell' ? 'bg-white text-blue-800 shadow-sm' : 'text-gray-500'}`}>รายการที่ขาย</button>
-      </div>
-
-      <div className="space-y-4">
-        {ordersToShow.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">ยังไม่มีรายการสั่งซื้อ</div>
-        ) : (
-          ordersToShow.map(order => (
-            <div key={order.id} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
-              <div className="flex justify-between mb-3">
-                <span className="text-[10px] text-gray-400 font-mono">#{order.id}</span>
-                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${order.status === 'processing' ? 'bg-yellow-50 text-yellow-600' : 'bg-green-50 text-green-600'}`}>
-                  {getStatusText(order.status)}
-                </span>
-              </div>
-              <h3 className="font-bold text-lg mb-1">{order.foodName} x {order.quantity}</h3>
-              <p className="text-pink-500 font-bold mb-3">รวม ฿{order.totalPrice}</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-2xl mb-4">
-                <p><span className="font-bold">นัดรับ:</span> {order.pickupTime}</p>
-                <p><span className="font-bold">ที่อยู่:</span> {order.pickupLocation}</p>
-                <p className="col-span-full"><span className="font-bold">โน้ต:</span> {order.note || '-'}</p>
-                <p><span className="font-bold">{view === 'buy' ? 'ผู้ขาย:' : 'ผู้ซื้อ:'}</span> {view === 'buy' ? 'ร้านค้า' : order.buyerName}</p>
-              </div>
-
-              {view === 'sell' && order.status === 'processing' && (
-                <div className="flex gap-2">
-                  <button onClick={() => updateOrderStatus(order.id, 'delivered')} className="flex-1 py-2 bg-green-500 text-white rounded-xl font-bold text-sm">ส่งเรียบร้อย</button>
-                  <button onClick={() => updateOrderStatus(order.id, 'cancelled')} className="flex-1 py-2 bg-red-50 text-red-500 rounded-xl font-bold text-sm">ยกเลิกและลบ</button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 };
 
 const ChatPage = ({ initialTarget }: { initialTarget: UserProfile | 'group' | null }) => {
-  const { chats, users, currentUser, sendMessage, deleteMessage } = useApp();
-  const [selectedUser, setSelectedUser] = useState<UserProfile | 'group' | null>(initialTarget);
-  const [msgText, setMsgText] = useState('');
-  const [searchUsername, setSearchUsername] = useState('');
-  const [searchResult, setSearchResult] = useState<UserProfile | null>(null);
+  const { chats, users, currentUser, sendMessage } = useApp();
+  const [selected, setSelected] = useState<UserProfile | 'group' | null>(initialTarget);
+  const [text, setText] = useState('');
+  const [search, setSearch] = useState('');
+  const [uidInput, setUidInput] = useState('');
+  const [showUidAdd, setShowUidAdd] = useState(false);
 
-  useEffect(() => {
-    if (initialTarget) setSelectedUser(initialTarget);
-  }, [initialTarget]);
-
-  const filteredChats = chats.filter(c => 
-    (selectedUser === 'group' && c.receiverId === 'group') ||
-    (selectedUser !== 'group' && selectedUser && (
-      (c.senderId === currentUser?.id && c.receiverId === selectedUser.id) ||
-      (c.senderId === selectedUser.id && c.receiverId === currentUser?.id)
-    ))
-  );
-
-  const contactList = useMemo(() => {
-    // ผู้ใช้ที่เคยแชทด้วย
-    const chatUserIds = new Set(chats.map(c => c.senderId === currentUser?.id ? c.receiverId : c.senderId));
-    return users.filter(u => u.id !== currentUser?.id && chatUserIds.has(u.id));
-  }, [users, currentUser, chats]);
+  const filteredMessages = chats.filter(c => selected === 'group' ? c.receiverId === 'group' : (selected && ((c.senderId === currentUser?.id && c.receiverId === selected.id) || (c.senderId === selected.id && c.receiverId === currentUser?.id))));
+  
+  const chatList = useMemo(() => {
+    const ids = new Set(chats.map(c => c.senderId === currentUser?.id ? c.receiverId : c.senderId));
+    return users.filter(u => ids.has(u.id) && u.id !== currentUser?.id);
+  }, [chats, users, currentUser]);
 
   const handleSend = () => {
-    if (!msgText.trim() || !selectedUser) return;
-    sendMessage({
-      senderId: currentUser!.id,
-      receiverId: selectedUser === 'group' ? 'group' : selectedUser.id,
-      text: msgText
-    });
-    setMsgText('');
+    if(!text.trim() || !selected) return;
+    sendMessage({ senderId: currentUser!.id, receiverId: selected === 'group' ? 'group' : selected.id, text });
+    setText('');
   };
 
-  const handleSearch = () => {
-    const found = users.find(u => u.username === searchUsername && u.id !== currentUser?.id);
-    setSearchResult(found || null);
-    if (!found) alert('ไม่พบผู้ใช้ชื่อนี้');
+  const startByUid = () => {
+    const target = users.find(u => u.id === uidInput.trim().toUpperCase());
+    if (target) {
+      if (target.id === currentUser?.id) return alert('คุยกับตัวเองไม่ได้จ้า!');
+      setSelected(target); setShowUidAdd(false); setUidInput('');
+    } else {
+      alert('ไม่เจอ UID นี้จ้า 🔍');
+    }
   };
 
-  return (
-    <div className="p-4 pt-20 pb-24 max-w-4xl mx-auto h-screen flex flex-col">
-      {selectedUser ? (
-        <div className="flex-1 flex flex-col bg-white rounded-3xl shadow-xl overflow-hidden mb-4 border border-gray-100">
-          <div className="p-4 bg-blue-800 text-white flex items-center gap-3">
-            <button onClick={() => setSelectedUser(null)}><ChevronLeft /></button>
-            <div className="flex items-center gap-2">
-              {selectedUser === 'group' ? (
-                <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center font-bold">G</div>
-              ) : (
-                <img src={selectedUser.profilePic} className="w-10 h-10 rounded-full" />
-              )}
-              <span className="font-bold">{selectedUser === 'group' ? 'กลุ่มแชทสาธารณะ' : selectedUser.displayName}</span>
+  if (selected) {
+    return (
+      <div className="fixed inset-0 bg-white z-[60] flex flex-col h-screen">
+        <div className="bg-blue-950 text-white p-4 pt-12 md:pt-4 flex items-center gap-4 shadow-lg">
+          <button onClick={() => setSelected(null)} className="p-2 bg-white/10 rounded-full"><ChevronLeft size={28} strokeWidth={3} /></button>
+          <div className="flex items-center gap-3">
+            <img src={selected === 'group' ? 'https://api.dicebear.com/7.x/shapes/svg?seed=group' : selected.profilePic} className="w-12 h-12 rounded-full border-2 border-white/20 object-cover" alt="avatar" />
+            <div>
+              <p className="font-black text-lg leading-none">{selected === 'group' ? 'หมู่บ้านเรา 🏘️' : selected.displayName}</p>
+              <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mt-1">{selected === 'group' ? 'คุยรวมทุกคน' : `UID: ${selected.id}`}</p>
             </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-blue-50/30">
-            {filteredChats.map(c => {
-              const isMe = c.senderId === currentUser?.id;
-              const sender = users.find(u => u.id === c.senderId);
-              return (
-                <div key={c.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3 rounded-2xl relative group ${isMe ? 'bg-pink-500 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none shadow-sm'}`}>
-                    {!isMe && selectedUser === 'group' && (
-                      <p className="text-[10px] font-bold mb-1 text-blue-800">{sender?.displayName}</p>
-                    )}
-                    <p className="text-sm">{c.text}</p>
-                    {isMe && (
-                      <button onClick={() => deleteMessage(c.id)} className="absolute -left-8 top-1 opacity-0 group-hover:opacity-100 text-red-400">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="p-4 bg-white border-t flex gap-2">
-            <button className="p-2 text-gray-400"><ImageIcon size={24} /></button>
-            <input 
-              className="flex-1 p-2 bg-gray-100 rounded-xl outline-none bg-white text-black font-medium" 
-              placeholder="พิมพ์ข้อความ..." 
-              value={msgText} 
-              onChange={e => setMsgText(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && handleSend()}
-            />
-            <button onClick={handleSend} className="p-2 bg-blue-800 text-white rounded-xl"><Send size={20} /></button>
           </div>
         </div>
-      ) : (
-        <div className="space-y-4 overflow-y-auto">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-xl font-bold">การสนทนา</h2>
-          </div>
-
-          <div className="flex gap-2 mb-4">
-            <div className="relative flex-1">
-              <input 
-                placeholder="พิมพ์ Username เพื่อแชท..." 
-                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-pink-200"
-                value={searchUsername}
-                onChange={e => setSearchUsername(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && handleSearch()}
-              />
-              <Search className="absolute left-3 top-3.5 text-gray-400" size={18} />
-            </div>
-            <button onClick={handleSearch} className="px-6 bg-pink-500 text-white rounded-2xl font-bold">ค้นหา</button>
-          </div>
-
-          {searchResult && (
-            <div className="bg-blue-50 p-4 rounded-3xl flex items-center gap-4 mb-4 border border-blue-100">
-              <img src={searchResult.profilePic} className="w-12 h-12 rounded-full" />
-              <div className="flex-1">
-                <p className="font-bold text-blue-900">{searchResult.displayName}</p>
-                <p className="text-xs text-gray-500">@{searchResult.username}</p>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col-reverse">
+          <div className="h-2"></div>
+          {[...filteredMessages].reverse().map(m => {
+            const isMe = m.senderId === currentUser?.id;
+            return (
+              <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-5 py-3.5 rounded-[1.5rem] text-base font-black shadow-sm ${isMe ? 'bg-pink-600 text-white rounded-tr-none' : 'bg-white text-blue-950 rounded-tl-none border border-gray-100'}`}>
+                  {selected === 'group' && !isMe && <p className="text-[8px] font-black text-blue-800 mb-1 uppercase">@ {users.find(u => u.id === m.senderId)?.displayName}</p>}
+                  {m.text}
+                </div>
               </div>
-              <button onClick={() => setSelectedUser(searchResult)} className="p-2 bg-blue-800 text-white rounded-full">
-                <UserPlus size={20} />
-              </button>
-            </div>
-          )}
+            );
+          })}
+        </div>
+        <div className="p-4 bg-white border-t-2 border-gray-100 flex gap-2 pb-10 md:pb-4 items-center safe-bottom">
+          <input className="flex-1 h-14 px-6 bg-gray-100 rounded-2xl outline-none font-black text-blue-950 border-2 border-transparent focus:border-pink-600 transition-all" placeholder="พิมพ์อะไรดีนะ..." value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSend()} />
+          <button onClick={handleSend} className="w-14 h-14 bg-pink-600 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all"><Send size={24} /></button>
+        </div>
+      </div>
+    );
+  }
 
-          <div 
-            onClick={() => setSelectedUser('group')}
-            className="bg-white p-4 rounded-3xl flex items-center gap-4 cursor-pointer hover:bg-pink-50 transition-colors shadow-sm border border-gray-50"
-          >
-            <div className="w-14 h-14 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl">G</div>
+  return (
+    <div className="p-4 pt-6 pb-28 max-w-3xl mx-auto md:pt-24">
+      <div className="flex justify-between items-center mb-8 px-2">
+        <h1 className="text-3xl font-black text-blue-950">แชทคุยกัน 💬</h1>
+        <button onClick={() => setShowUidAdd(true)} className="p-3 bg-blue-900 text-white rounded-xl font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"><UserPlus size={16} /> ใส่ UID</button>
+      </div>
+      <div className="relative mb-8">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-950" size={24} strokeWidth={3} />
+        <input className="w-full pl-14 pr-6 h-16 bg-white rounded-2xl border-2 border-gray-100 outline-none font-black text-blue-950 shadow-sm focus:border-pink-600 transition-all" placeholder="ค้นหาเพื่อนบ้าน..." value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+      <div className="space-y-3">
+        <div onClick={() => setSelected('group')} className="bg-white p-5 rounded-[2rem] border-2 border-pink-50 shadow-md flex items-center gap-4 cursor-pointer hover:bg-pink-50 transition-all active:scale-95 group">
+          <div className="w-14 h-14 bg-pink-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg border-2 border-white group-hover:rotate-12 transition-transform">G</div>
+          <div className="flex-1">
+            <p className="font-black text-lg text-blue-950 leading-none mb-1">กลุ่มแชทสาธารณะ 🏘️</p>
+            <p className="text-xs text-pink-600 font-black opacity-80 italic truncate">รวมตัวคนรักของกิน มาคุยกัน!</p>
+          </div>
+        </div>
+        {(search ? users.filter(u => u.displayName.toLowerCase().includes(search.toLowerCase()) && u.id !== currentUser?.id) : chatList).map(u => (
+          <div key={u.id} onClick={() => setSelected(u)} className="bg-white p-4 rounded-[1.8rem] border-2 border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-blue-50 transition-all active:scale-95 group">
+            <img src={u.profilePic} className="w-14 h-14 rounded-full border-2 border-white shadow-md object-cover" alt="avatar" />
             <div className="flex-1">
-              <p className="font-bold">กลุ่มแชทสาธารณะ</p>
-              <p className="text-xs text-gray-400">คุยกับทุกคนในแอป</p>
-            </div>
-          </div>
-
-          {contactList.map(u => (
-            <div 
-              key={u.id} 
-              onClick={() => setSelectedUser(u)}
-              className="bg-white p-4 rounded-3xl flex items-center gap-4 cursor-pointer hover:bg-blue-50 transition-colors shadow-sm border border-gray-50"
-            >
-              <img src={u.profilePic} className="w-14 h-14 rounded-full border-2 border-gray-100" />
-              <div className="flex-1">
-                <p className="font-bold">{u.displayName}</p>
-                <p className="text-xs text-gray-400">@{u.username}</p>
+              <p className="font-black text-lg text-blue-950 leading-none mb-1">{u.displayName}</p>
+              <div className="flex gap-2 items-center opacity-60 text-[8px] font-black uppercase tracking-widest">
+                <p className="text-blue-800">{u.email}</p>
+                <p className="text-pink-600">UID: {u.id}</p>
               </div>
             </div>
-          ))}
-
-          {contactList.length === 0 && !searchResult && (
-            <div className="text-center py-10">
-              <p className="text-gray-400 text-sm">ยังไม่มีแชทส่วนตัว<br/>ลองค้นหาด้วย Username ด้านบน!</p>
+            <ArrowRight size={16} className="text-gray-200" />
+          </div>
+        ))}
+      </div>
+      {showUidAdd && (
+        <div className="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-6 backdrop-blur-md">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm space-y-5 border-4 border-blue-900 shadow-2xl text-center">
+            <h3 className="text-2xl font-black text-blue-950">เริ่มแชทด้วย UID</h3>
+            <input autoFocus placeholder="UXXXXXX" className="w-full h-16 bg-gray-50 rounded-2xl border-4 border-gray-200 outline-none focus:border-blue-900 font-black text-3xl text-center text-blue-950 uppercase" value={uidInput} onChange={e => setUidInput(e.target.value)} />
+            <div className="flex gap-3">
+              <button onClick={startByUid} className="flex-1 h-16 bg-blue-900 text-white rounded-2xl font-black">คุยเลย</button>
+              <button onClick={() => setShowUidAdd(false)} className="flex-1 h-16 bg-gray-100 text-blue-950 rounded-2xl font-black">ปิด</button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
@@ -802,155 +617,157 @@ const ChatPage = ({ initialTarget }: { initialTarget: UserProfile | 'group' | nu
 
 const NotificationPage = () => {
   const { notifications, currentUser, deleteNotification } = useApp();
-  const myNotifs = notifications.filter(n => n.userId === currentUser?.id);
-
+  const myNotifs = notifications.filter(n => n.userId === currentUser?.id).sort((a,b) => b.createdAt - a.createdAt);
   return (
-    <div className="p-4 pt-20 pb-24 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-blue-900 mb-6">การแจ้งเตือน</h1>
-      <div className="space-y-3">
-        {myNotifs.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">ไม่มีการแจ้งเตือน</div>
-        ) : (
-          myNotifs.map(n => (
-            <div key={n.id} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-50 flex gap-4 relative group">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${n.type === 'order' ? 'bg-pink-100 text-pink-500' : 'bg-blue-100 text-blue-500'}`}>
-                {n.type === 'order' ? <ShoppingBag /> : <Bell />}
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-sm">{n.title}</p>
-                <p className="text-xs text-gray-600">{n.message}</p>
-                <p className="text-[10px] text-gray-400 mt-2">{new Date(n.createdAt).toLocaleString('th-TH')}</p>
-              </div>
-              <button onClick={() => deleteNotification(n.id)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500">
-                <XCircle size={18} />
-              </button>
+    <div className="p-4 pt-6 pb-28 max-w-2xl mx-auto md:pt-24">
+      <h1 className="text-3xl font-black text-blue-950 mb-8 px-2">แจ้งเตือน 🔔</h1>
+      <div className="space-y-4">
+        {myNotifs.map(n => (
+          <div key={n.id} className="bg-white p-5 rounded-[2rem] border-2 border-gray-100 shadow-md flex gap-4 relative group active:scale-[0.98]">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${n.type === 'order' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-800'}`}>
+              <Bell size={24} strokeWidth={3} />
             </div>
-          ))
-        )}
+            <div className="flex-1 pr-6">
+              <p className="font-black text-lg text-blue-950 mb-0.5 leading-tight">{n.title}</p>
+              <p className="text-xs text-gray-600 font-bold">{n.message}</p>
+            </div>
+            <button onClick={() => deleteNotification(n.id)} className="absolute top-4 right-4 text-gray-300 hover:text-red-600"><XCircle size={24} /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const OrdersPage = () => {
+  const { orders, currentUser, updateOrderStatus } = useApp();
+  const [view, setView] = useState<'buy' | 'sell'>('buy');
+  const filtered = orders.filter(o => view === 'buy' ? o.buyerId === currentUser?.id : o.sellerId === currentUser?.id).sort((a,b) => b.createdAt - a.createdAt);
+  return (
+    <div className="p-4 pt-6 pb-28 max-w-3xl mx-auto md:pt-24">
+      <h1 className="text-3xl font-black text-blue-950 mb-6 px-2">ออเดอร์ 📝</h1>
+      <div className="flex bg-gray-200 p-1.5 rounded-2xl mb-8 shadow-inner border border-gray-300">
+        <button onClick={() => setView('buy')} className={`flex-1 py-4 rounded-[1rem] font-black text-lg ${view === 'buy' ? 'bg-white shadow-md text-pink-600' : 'text-gray-600'}`}>🛍️ ฉันสั่ง</button>
+        <button onClick={() => setView('sell')} className={`flex-1 py-4 rounded-[1rem] font-black text-lg ${view === 'sell' ? 'bg-white shadow-md text-blue-900' : 'text-gray-600'}`}>💰 ฉันขาย</button>
+      </div>
+      <div className="space-y-6">
+        {filtered.map(o => (
+          <div key={o.id} className="bg-white p-6 rounded-[2rem] border-2 border-gray-100 shadow-lg relative overflow-hidden active:scale-[0.98]">
+            <div className={`absolute top-0 left-0 w-2 h-full ${o.status === 'processing' ? 'bg-yellow-400' : 'bg-green-500'}`}></div>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="font-black text-2xl text-blue-950">{o.foodName} <span className="text-pink-600 ml-1">x{o.quantity}</span></h3>
+                <p className="text-2xl font-black text-blue-900">฿{o.totalPrice}</p>
+              </div>
+              <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border ${o.status === 'processing' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-green-50 text-green-800 border-green-200'}`}>{o.status === 'processing' ? '🕒 กำลังทำ' : '✅ สำเร็จ'}</span>
+            </div>
+            <div className="text-sm font-black space-y-2 text-blue-950 mb-6 bg-blue-50/30 p-4 rounded-[1.5rem]">
+              <p>📍 {o.pickupLocation}</p>
+              <p>⏰ {o.pickupTime}</p>
+            </div>
+            {view === 'sell' && o.status === 'processing' && (
+              <div className="flex gap-2">
+                <button onClick={() => updateOrderStatus(o.id, 'delivered')} className="flex-1 h-14 bg-green-600 text-white rounded-xl font-black">ส่งแล้ว ✅</button>
+                <button onClick={() => updateOrderStatus(o.id, 'cancelled')} className="flex-1 h-14 bg-red-50 text-red-600 rounded-xl font-black">ยกเลิก</button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
 const HomePage = ({ setTab, onAdmin, onSelectUser }: { setTab: (t: string) => void, onAdmin: () => void, onSelectUser: (u: UserProfile) => void }) => {
-  const { currentUser, foodItems, users } = useApp();
+  const { currentUser, foodItems } = useApp();
   const trending = foodItems.slice(0, 4);
-
   return (
-    <div className="p-4 pt-20 pb-24 max-w-4xl mx-auto">
-      <div className="bg-gradient-to-r from-pink-500 to-blue-800 rounded-3xl p-6 text-white mb-8 shadow-xl">
-        <h1 className="text-2xl font-bold mb-1">สวัสดี, {currentUser?.displayName}! 👋</h1>
-        <p className="text-sm opacity-90">ยินดีต้อนรับสู่ Sue AhHahn สั่งอาหารอร่อยๆ ได้เลย</p>
-        
-        {currentUser?.role === 'admin' && (
-          <button 
-            onClick={onAdmin}
-            className="mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-bold flex items-center gap-2 border border-white/30 backdrop-blur-sm transition-colors"
-          >
-            <ShieldCheck size={18} /> Admin Dashboard
-          </button>
-        )}
+    <div className="p-4 pt-6 pb-28 max-w-4xl mx-auto md:pt-24">
+      <div className="bg-gradient-to-br from-pink-600 via-pink-500 to-blue-900 rounded-[2.5rem] p-8 text-white mb-10 shadow-xl relative overflow-hidden group">
+        <h1 className="text-3xl font-black mb-2 z-10 relative">หวัดดีจ้า, {currentUser?.displayName}! 👋</h1>
+        <p className="text-pink-100 font-black text-base z-10 relative opacity-90 leading-relaxed max-w-[200px] md:max-w-md">วันนี้อยากทานอะไรอร่อยๆ ไหม? ✨</p>
+        {currentUser?.role === 'admin' && <button onClick={onAdmin} className="mt-8 px-6 py-3 bg-white/20 text-white rounded-xl font-black text-xs border border-white/40 active:scale-95 flex items-center gap-2 relative z-20"><ShieldCheck size={16} /> แผงควบคุมแอดมิน</button>}
       </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <button onClick={() => setTab('menu')} className="bg-white p-4 rounded-3xl shadow-md border border-gray-50 flex flex-col items-center gap-2 transition-transform active:scale-95">
-          <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center text-pink-500">
-            <ShoppingBag />
-          </div>
-          <span className="font-bold text-gray-700">หิวจัง สั่งเลย</span>
+      <div className="grid grid-cols-2 gap-4 mb-10">
+        <button onClick={() => setTab('menu')} className="bg-white p-6 rounded-[2rem] border-2 border-pink-50 shadow-lg flex flex-col items-center gap-4 active:scale-95 group">
+          <div className="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center border border-pink-200"><ShoppingBag className="text-pink-600" size={32} /></div>
+          <span className="font-black text-base text-blue-950">เมนูอาหาร</span>
         </button>
-        <button onClick={() => setTab('orders')} className="bg-white p-4 rounded-3xl shadow-md border border-gray-50 flex flex-col items-center gap-2 transition-transform active:scale-95">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-800">
-            <CheckCircle2 />
-          </div>
-          <span className="font-bold text-gray-700">ดูรายการสั่ง</span>
+        <button onClick={() => setTab('orders')} className="bg-white p-6 rounded-[2rem] border-2 border-blue-50 shadow-lg flex flex-col items-center gap-4 active:scale-95 group">
+          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center border border-blue-200"><CheckCircle2 className="text-blue-900" size={32} /></div>
+          <span className="font-black text-base text-blue-950">ออเดอร์</span>
         </button>
       </div>
-
-      <section>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-blue-900">เมนูแนะนำ 🔥</h2>
-          <button onClick={() => setTab('menu')} className="text-sm text-pink-500 font-bold">ดูทั้งหมด</button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {trending.map(item => (
-            <div key={item.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-50 flex flex-col">
-              <img src={item.imageUrl} className="w-full h-32 object-cover" />
-              <div className="p-3">
-                <p className="font-bold text-sm truncate">{item.name}</p>
-                <button 
-                  onClick={() => {
-                    const seller = users.find(u => u.id === item.sellerId);
-                    if (seller) onSelectUser(seller);
-                  }}
-                  className="text-blue-800 text-[10px] font-bold hover:underline mb-1"
-                >
-                  ร้าน: {item.sellerName}
-                </button>
-                <p className="text-pink-500 font-bold text-sm">฿{item.price}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="flex justify-between items-center mb-6 px-2">
+        <h2 className="text-2xl font-black text-blue-950 drop-shadow-sm">แนะนำวันนี้ 🔥</h2>
+        <button onClick={() => setTab('menu')} className="text-pink-600 font-black text-xs hover:underline">ดูทั้งหมด</button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {trending.map(item => (
+          <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-md border-2 border-gray-50 p-3 active:scale-95 transition-all group cursor-pointer" onClick={() => setTab('menu')}>
+            <div className="h-28 rounded-xl mb-3 overflow-hidden"><img src={item.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={item.name} /></div>
+            <p className="font-black text-blue-950 text-xs truncate mb-0.5">{item.name}</p>
+            <p className="text-pink-600 font-black text-lg">฿{item.price}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
+
+const AdminDashboard = ({ users, onBack }: { users: UserProfile[], onBack: () => void }) => (
+  <div className="p-4 pt-10 pb-28 max-w-4xl mx-auto md:pt-24">
+    <div className="flex items-center gap-4 mb-8 px-2">
+      <button onClick={onBack} className="p-3 bg-white rounded-2xl shadow-md border-2 border-gray-100"><ChevronLeft size={24} /></button>
+      <h1 className="text-2xl font-black text-blue-950">Admin Control 🛡️</h1>
+    </div>
+    <div className="grid gap-6">
+      {users.map(u => (
+        <div key={u.id} className="bg-white p-5 md:p-8 rounded-[2rem] shadow-lg border-2 border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden group">
+          <div className={`absolute top-0 right-0 px-4 py-1.5 font-black text-[10px] uppercase tracking-widest text-white ${u.role === 'admin' ? 'bg-blue-900' : 'bg-pink-600'}`}>{u.role}</div>
+          <div className="shrink-0"><img src={u.profilePic} className="w-20 h-20 rounded-full border-4 border-gray-50 shadow-md object-cover" alt="avatar" /></div>
+          <div className="flex-1 flex flex-col gap-4 text-center md:text-left w-full">
+            <div><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">ชื่อแสดง</span><p className="font-black text-2xl text-blue-950">{u.displayName}</p></div>
+            <div><span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Email & UID</span><div className="flex flex-col md:flex-row gap-2 md:items-center"><p className="text-base text-pink-600 font-black bg-pink-50 px-3 py-1 rounded-xl border border-pink-100">{u.email}</p><p className="text-xs text-blue-900 font-black tracking-widest font-mono">@{u.id}</p></div></div>
+          </div>
+          <div className="text-center md:text-right bg-yellow-50 px-6 py-4 rounded-2xl border-2 border-yellow-100 min-w-[140px] shadow-inner"><p className="text-[9px] font-black text-yellow-900 uppercase mb-2 flex items-center justify-center md:justify-end gap-1"><Lock size={12} /> Password</p><p className="text-xl font-mono font-black text-pink-600">{u.password}</p></div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 const MainApp = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const [isAdminView, setIsAdminView] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [viewedProfile, setViewedProfile] = useState<UserProfile | null>(null);
-  const [chatInitialTarget, setChatInitialTarget] = useState<UserProfile | 'group' | null>(null);
-  const { currentUser } = useApp();
-
+  const [chatTarget, setChatTarget] = useState<UserProfile | 'group' | null>(null);
+  const { currentUser, users } = useApp();
   if (!currentUser) return <LoginPage />;
-  if (isAdminView) return <AdminDashboard onBack={() => setIsAdminView(false)} />;
-
-  const startChat = (user: UserProfile) => {
-    setChatInitialTarget(user);
-    setViewedProfile(null);
-    setActiveTab('chat');
-  };
-
+  if (isAdmin) return <AdminDashboard users={users} onBack={() => setIsAdmin(false)} />;
   const showProfile = (user: UserProfile) => {
-    setViewedProfile(user);
-    if (user.id === currentUser.id) {
-      setActiveTab('profile');
-      setViewedProfile(null);
-    }
+    if(user.id === currentUser.id) setActiveTab('profile');
+    else setViewedProfile(user);
   };
-
   const renderContent = () => {
-    if (viewedProfile) return <ProfilePage user={viewedProfile} onBack={() => setViewedProfile(null)} onStartChat={startChat} />;
-
+    if (viewedProfile) return <ProfilePage user={viewedProfile} onBack={() => setViewedProfile(null)} onStartChat={(u) => { setChatTarget(u); setViewedProfile(null); setActiveTab('chat'); }} />;
     switch(activeTab) {
-      case 'home': return <HomePage setTab={setActiveTab} onAdmin={() => setIsAdminView(true)} onSelectUser={showProfile} />;
+      case 'home': return <HomePage setTab={setActiveTab} onAdmin={() => setIsAdmin(true)} onSelectUser={showProfile} />;
       case 'menu': return <MenuPage onSelectUser={showProfile} />;
       case 'orders': return <OrdersPage />;
-      case 'chat': return <ChatPage initialTarget={chatInitialTarget} />;
+      case 'chat': return <ChatPage initialTarget={chatTarget} />;
       case 'notif': return <NotificationPage />;
-      case 'profile': return <ProfilePage user={currentUser} onStartChat={startChat} />;
-      default: return <HomePage setTab={setActiveTab} onAdmin={() => setIsAdminView(true)} onSelectUser={showProfile} />;
+      case 'profile': return <ProfilePage user={currentUser} onStartChat={(u) => { setChatTarget(u); setActiveTab('chat'); }} />;
+      default: return null;
     }
   };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar activeTab={activeTab} setTab={(t) => { setActiveTab(t); setViewedProfile(null); setChatInitialTarget(null); }} isAdmin={currentUser.role === 'admin'} />
-      <main className="pb-4">
-        {renderContent()}
-      </main>
+    <div className="min-h-screen bg-gray-50 text-blue-950 selection:bg-pink-200 selection:text-pink-800">
+      <Navbar activeTab={activeTab} setTab={(t) => { setActiveTab(t); setViewedProfile(null); setChatTarget(null); }} isAdmin={currentUser.role === 'admin'} />
+      <main className="max-w-screen-xl mx-auto pb-10">{renderContent()}</main>
     </div>
   );
 };
 
-const App = () => {
-  return (
-    <AppProvider>
-      <MainApp />
-    </AppProvider>
-  );
-};
-
+const App = () => (<AppProvider><MainApp /></AppProvider>);
 export default App;

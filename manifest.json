@@ -1,0 +1,23 @@
+
+{
+  "name": "Sue AhHahn",
+  "short_name": "SueAhHahn",
+  "description": "แอปพลิเคชันสั่งอาหารเรียลไทม์",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#FF69B4",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/icons/svg?seed=food&backgroundColor=FF69B4",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.dicebear.com/7.x/icons/svg?seed=food&backgroundColor=FF69B4",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
