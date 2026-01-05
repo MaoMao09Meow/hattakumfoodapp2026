@@ -1,0 +1,7 @@
+{
+  "name": "Sue AhHahn",
+  "description": "แอปพลิเคชันซื้อขายอาหารแบบเรียลไทม์ พร้อมระบบแชทและแจ้งเตือน",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
