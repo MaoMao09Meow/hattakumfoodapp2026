@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#db2777">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/icons/svg?seed=food&backgroundColor=db2777">
-    <title>Sue AhHahn - ซื้ออาหาร</title>
+    <title>Sue AhHahn - สั่งอาหารออนไลน์</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,26 +27,13 @@
         }
         input, textarea {
             user-select: text;
-            font-size: 16px !important; /* Prevents iOS auto-zoom */
+            font-size: 16px !important;
         }
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #db2777;
-            border-radius: 10px;
-        }
-        .nav-blur {
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-        .active-nav-item {
-            transform: translateY(-4px);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #db2777; border-radius: 10px; }
+        .nav-blur { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .active-nav-item { transform: translateY(-4px); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     </style>
 <script type="importmap">
 {
@@ -61,6 +48,8 @@
 </head>
 <body class="overflow-x-hidden antialiased text-blue-950">
     <div id="root"></div>
+    <!-- เรียกใช้ Entry Point ของแอป -->
+    <script type="module" src="./index.tsx"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
